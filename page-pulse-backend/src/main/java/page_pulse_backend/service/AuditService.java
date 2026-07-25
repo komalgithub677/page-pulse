@@ -1,27 +1,146 @@
 package page_pulse_backend.service;
 
+import java.net.URI;
+import java.net.UnknownHostException;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.net.http.HttpTimeoutException;
+import java.time.Duration;
 
-
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
 import org.springframework.stereotype.Service;
 
 import page_pulse_backend.dto.AuditResponse;
-
-
+import page_pulse_backend.exception.AuditException;
+import page_pulse_backend.util.UrlValidator;
 
 @Service
 public class AuditService {
 
+    private final HttpClient client = HttpClient.newBuilder()
+            .connectTimeout(Duration.ofSeconds(10))
+            .build();
+
     public AuditResponse auditPage(String url) {
 
-        return new AuditResponse(
-                url,
-                200,
-                0,
-                "Temporary Title",
-                "Temporary Description",
-                0,
-                0,
-                0
-        );
+        // Validate URL
+        if (!UrlValidator.isValid(url)) {
+            throw new AuditException("Please enter a valid HTTP or HTTPS URL.");
+        }
+
+        try {
+
+            // Create HTTP Request
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(url))
+                    .GET()
+                    .timeout(Duration.ofSeconds(10))
+                    .build();
+
+            // Start Timer
+            long startTime = System.currentTimeMillis();
+
+            // Send Request
+            HttpResponse<String> response = client.send(
+                    request,
+                    HttpResponse.BodyHandlers.ofString());
+
+            // Calculate Response Time
+            long responseTime = System.currentTimeMillis() - startTime;
+
+            // Check Content Type
+            String contentType = response.headers()
+                    .firstValue("Content-Type")
+                    .orElse("");
+
+            if (!contentType.toLowerCase().contains("text/html")) {
+                throw new AuditException(
+                        "The provided URL does not return an HTML page.");
+            }
+
+            // Parse HTML using Jsoup
+            Document document = Jsoup.parse(response.body());
+
+            // Extract Page Title
+            String title = document.title();
+
+            // Extract Meta Description
+            Element metaDescriptionElement =
+                    document.selectFirst("meta[name=description]");
+
+            String metaDescription = "";
+
+            if (metaDescriptionElement != null) {
+                metaDescription = metaDescriptionElement.attr("content");
+            }
+
+            // Count H1 Tags
+            int h1Count = document.select("h1").size();
+
+            // Count Images Missing Alt
+            Elements images = document.select("img");
+
+            int imagesMissingAlt = 0;
+
+            for (Element image : images) {
+
+                String alt = image.attr("alt");
+
+                if (alt == null || alt.trim().isEmpty()) {
+                    imagesMissingAlt++;
+                }
+            }
+
+            // Remove unwanted elements before counting words
+            document.select("script").remove();
+            document.select("style").remove();
+            document.select("noscript").remove();
+
+            String text = "";
+
+            if (document.body() != null) {
+                text = document.body().text();
+            }
+
+            text = text.trim().replaceAll("\\s+", " ");
+
+            int wordCount = 0;
+
+            if (!text.isEmpty()) {
+                wordCount = text.split("\\s+").length;
+            }
+
+            // Return Final Response
+            return new AuditResponse(
+                    url,
+                    response.statusCode(),
+                    responseTime,
+                    title,
+                    metaDescription,
+                    h1Count,
+                    imagesMissingAlt,
+                    wordCount
+            );
+
+        } catch (HttpTimeoutException e) {
+
+            throw new AuditException("Website request timed out.");
+
+        } catch (UnknownHostException e) {
+
+            throw new AuditException("Website could not be reached.");
+
+        } catch (AuditException e) {
+
+            throw e;
+
+        } catch (Exception e) {
+
+            throw new AuditException("Unable to access the website.");
+        }
     }
 }

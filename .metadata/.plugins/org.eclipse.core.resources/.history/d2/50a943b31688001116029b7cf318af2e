@@ -1,0 +1,71 @@
+package page_pulse_backend.service;
+
+
+package com.pagepulse.service;
+
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.time.Duration;
+
+import org.springframework.stereotype.Service;
+
+import com.pagepulse.dto.AuditResponse;
+import com.pagepulse.exception.AuditException;
+import com.pagepulse.util.UrlValidator;
+
+@Service
+public class AuditService {
+
+    private final HttpClient client =
+            HttpClient.newBuilder()
+                    .connectTimeout(Duration.ofSeconds(10))
+                    .build();
+
+    public AuditResponse auditPage(String url) {
+
+        if (!UrlValidator.isValid(url)) {
+            throw new AuditException(
+                    "Please enter a valid HTTP or HTTPS URL.");
+        }
+
+        try {
+
+            HttpRequest request =
+                    HttpRequest.newBuilder()
+                            .uri(URI.create(url))
+                            .GET()
+                            .timeout(Duration.ofSeconds(10))
+                            .build();
+
+            long start = System.currentTimeMillis();
+
+            HttpResponse<String> response =
+                    client.send(request,
+                            HttpResponse.BodyHandlers.ofString());
+
+            long responseTime =
+                    System.currentTimeMillis() - start;
+
+            return new AuditResponse(
+                    url,
+                    response.statusCode(),
+                    responseTime,
+                    "",
+                    "",
+                    0,
+                    0,
+                    0
+            );
+
+        } catch (Exception e) {
+
+            throw new AuditException(
+                    "Unable to access the website.");
+
+        }
+
+    }
+
+}}

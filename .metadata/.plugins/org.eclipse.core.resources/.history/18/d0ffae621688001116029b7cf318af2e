@@ -1,0 +1,43 @@
+package page_pulse_backend.service;
+
+
+
+import org.springframework.stereotype.Service;
+
+import page_pulse_backend.dto.AuditResponse;
+
+
+
+import java.net.http.HttpClient;
+
+import org.springframework.stereotype.Service;
+import page_pulse_backend.exception.AuditException;
+import page_pulse_backend.util.UrlValidator;
+
+@Service
+public class AuditService {
+
+    private final HttpClient client =
+            HttpClient.newHttpClient();
+
+    public AuditResponse auditPage(String url) {
+
+        if (!UrlValidator.isValid(url)) {
+            throw new AuditException(
+                    "Please enter a valid HTTP or HTTPS URL.");
+        }
+
+        return new AuditResponse(
+                url,
+                200,
+                0,
+                "",
+                "",
+                0,
+                0,
+                0
+        );
+
+    }
+
+}

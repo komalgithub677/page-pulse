@@ -1,0 +1,91 @@
+package page_pulse_backend.service;
+
+import java.net.URI;
+import java.net.UnknownHostException;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.net.http.HttpTimeoutException;
+import java.time.Duration;
+
+import org.springframework.stereotype.Service;
+
+import page_pulse_backend.dto.AuditResponse;
+import page_pulse_backend.exception.AuditException;
+import page_pulse_backend.util.UrlValidator;
+
+@Service
+public class AuditService {
+
+    private final HttpClient client = HttpClient.newBuilder()
+            .connectTimeout(Duration.ofSeconds(10))
+            .build();
+
+    public AuditResponse auditPage(String url) {
+
+        // Validate URL
+        if (!UrlValidator.isValid(url)) {
+            throw new AuditException(
+                    "Please enter a valid HTTP or HTTPS URL.");
+        }
+
+        try {
+
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(url))
+                    .GET()
+                    .timeout(Duration.ofSeconds(10))
+                    .build();
+
+            long startTime = System.currentTimeMillis();
+
+            HttpResponse<String> response = client.send(
+                    request,
+                    HttpResponse.BodyHandlers.ofString());
+
+            long responseTime = System.currentTimeMillis() - startTime;
+
+            // Check Content-Type
+            String contentType = response.headers()
+                    .firstValue("Content-Type")
+                    .orElse("");
+
+            if (!contentType.toLowerCase().contains("text/html")) {
+                throw new AuditException(
+                        "The provided URL does not return an HTML page.");
+            }
+
+            // Return temporary response
+            return new AuditResponse(
+                    url,
+                    response.statusCode(),
+                    responseTime,
+                    "",
+                    "",
+                    0,
+                    0,
+                    0
+            );
+
+        } catch (HttpTimeoutException e) {
+
+            throw new AuditException(
+                    "Website request timed out.");
+
+        } catch (UnknownHostException e) {
+
+            throw new AuditException(
+                    "Website could not be reached.");
+
+        } catch (AuditException e) {
+
+            throw e;
+
+        } catch (Exception e) {
+
+            throw new AuditException(
+                    "Unable to access the website.");
+
+        }
+    }
+}

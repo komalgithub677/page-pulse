@@ -1,5 +1,30 @@
 package page_pulse_backend.util;
 
+
+
+import java.net.URI;
+
 public class UrlValidator {
-              
+
+    public static boolean isValid(String url) {
+
+        try {
+
+            URI uri = new URI(url);
+
+            String scheme = uri.getScheme();
+
+            if (scheme == null) {
+                return false;
+            }
+
+            return scheme.equalsIgnoreCase("http")
+                    || scheme.equalsIgnoreCase("https");
+
+        } catch (Exception e) {
+            return false;
+        }
+
+    }
+
 }
