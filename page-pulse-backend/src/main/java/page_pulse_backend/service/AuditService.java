@@ -1,0 +1,5 @@
+package page_pulse_backend.service;
+
+public class AuditService {
+
+}
