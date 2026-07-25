@@ -1,0 +1,25 @@
+package page_pulse_backend.service;
+
+package com.pagepulse.service;
+
+import org.springframework.stereotype.Service;
+
+import com.pagepulse.dto.AuditResponse;
+
+@Service
+public class AuditService {
+
+    public AuditResponse auditPage(String url) {
+
+        return new AuditResponse(
+                url,
+                200,
+                0,
+                "Temporary Title",
+                "Temporary Description",
+                0,
+                0,
+                0
+        );
+    }
+}
