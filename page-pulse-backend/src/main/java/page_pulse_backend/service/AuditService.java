@@ -1,21 +1,19 @@
 package page_pulse_backend.service;
 
 import java.net.URI;
-import java.net.UnknownHostException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.net.http.HttpTimeoutException;
 import java.time.Duration;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import org.springframework.stereotype.Service;
 
 import page_pulse_backend.dto.AuditResponse;
 import page_pulse_backend.exception.AuditException;
+import page_pulse_backend.util.SEOScoreCalculator;
 import page_pulse_backend.util.UrlValidator;
 
 @Service
@@ -25,122 +23,119 @@ public class AuditService {
             .connectTimeout(Duration.ofSeconds(10))
             .build();
 
-    public AuditResponse auditPage(String url) {
+    public AuditResponse auditWebsite(String url) {
 
-        // Validate URL
         if (!UrlValidator.isValid(url)) {
-            throw new AuditException("Please enter a valid HTTP or HTTPS URL.");
+            throw new AuditException("Invalid URL. Use http:// or https://");
         }
 
         try {
 
-            // Create HTTP Request
+            long start = System.currentTimeMillis();
+
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(url))
+                    .timeout(Duration.ofSeconds(15))
                     .GET()
-                    .timeout(Duration.ofSeconds(10))
                     .build();
 
-            // Start Timer
-            long startTime = System.currentTimeMillis();
+            HttpResponse<String> response =
+                    client.send(request, HttpResponse.BodyHandlers.ofString());
 
-            // Send Request
-            HttpResponse<String> response = client.send(
-                    request,
-                    HttpResponse.BodyHandlers.ofString());
+            long end = System.currentTimeMillis();
 
-            // Calculate Response Time
-            long responseTime = System.currentTimeMillis() - startTime;
+            long responseTime = end - start;
 
-            // Check Content Type
-            String contentType = response.headers()
-                    .firstValue("Content-Type")
-                    .orElse("");
+            String contentType =
+                    response.headers()
+                            .firstValue("Content-Type")
+                            .orElse("");
 
-            if (!contentType.toLowerCase().contains("text/html")) {
-                throw new AuditException(
-                        "The provided URL does not return an HTML page.");
+            if (!contentType.contains("text/html")) {
+                throw new AuditException("URL does not return HTML content.");
             }
 
-            // Parse HTML using Jsoup
             Document document = Jsoup.parse(response.body());
 
-            // Extract Page Title
             String title = document.title();
 
-            // Extract Meta Description
-            Element metaDescriptionElement =
-                    document.selectFirst("meta[name=description]");
+            String metaDescription =
+                    document.select("meta[name=description]")
+                            .attr("content");
 
-            String metaDescription = "";
+            int h1Count =
+                    document.select("h1").size();
 
-            if (metaDescriptionElement != null) {
-                metaDescription = metaDescriptionElement.attr("content");
-            }
+            Elements images =
+                    document.select("img");
 
-            // Count H1 Tags
-            int h1Count = document.select("h1").size();
+            int imagesMissingAlt =
+                    document.select("img:not([alt]), img[alt='']").size();
 
-            // Count Images Missing Alt
-            Elements images = document.select("img");
+            String text =
+                    document.body().text();
 
-            int imagesMissingAlt = 0;
+            int wordCount =
+                    text.trim().isEmpty()
+                            ? 0
+                            : text.trim().split("\\s+").length;
 
-            for (Element image : images) {
+            int seoScore =
+                    SEOScoreCalculator.calculateScore(
+                            title,
+                            metaDescription,
+                            h1Count,
+                            imagesMissingAlt,
+                            wordCount);
 
-                String alt = image.attr("alt");
-
-                if (alt == null || alt.trim().isEmpty()) {
-                    imagesMissingAlt++;
-                }
-            }
-
-            // Remove unwanted elements before counting words
-            document.select("script").remove();
-            document.select("style").remove();
-            document.select("noscript").remove();
-
-            String text = "";
-
-            if (document.body() != null) {
-                text = document.body().text();
-            }
-
-            text = text.trim().replaceAll("\\s+", " ");
-
-            int wordCount = 0;
-
-            if (!text.isEmpty()) {
-                wordCount = text.split("\\s+").length;
-            }
-
-            // Return Final Response
             return new AuditResponse(
+
                     url,
+
                     response.statusCode(),
+
                     responseTime,
+
                     title,
+
                     metaDescription,
+
                     h1Count,
+
                     imagesMissingAlt,
-                    wordCount
-            );
 
-        } catch (HttpTimeoutException e) {
+                    wordCount,
 
-            throw new AuditException("Website request timed out.");
+                    seoScore,
 
-        } catch (UnknownHostException e) {
+                    SEOScoreCalculator.generateRecommendations(
 
-            throw new AuditException("Website could not be reached.");
+                            title,
 
-        } catch (AuditException e) {
+                            metaDescription,
+
+                            h1Count,
+
+                            imagesMissingAlt,
+
+                            wordCount));
+        }
+
+        catch (AuditException e) {
 
             throw e;
 
-        } catch (Exception e) {
-
-            throw new AuditException("Unable to access the website.");
         }
+
+        catch (Exception e) {
+
+            throw new AuditException(
+
+                    "Unable to audit website: " + e.getMessage(),
+
+                    e);
+
+        }
+
     }
 }

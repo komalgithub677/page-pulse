@@ -1,0 +1,59 @@
+package page_pulse_backend;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+import org.junit.jupiter.api.Test;
+
+import page_pulse_backend.dto.AuditResponse;
+import page_pulse_backend.exception.AuditException;
+
+public class AuditServiceTest {
+
+    private final AuditService service = new AuditService();
+
+    @Test
+    void invalidUrlShouldThrowException() {
+
+        AuditException exception =
+
+                assertThrows(
+
+                        AuditException.class,
+
+                        () -> service.auditWebsite("abc"));
+
+        assertEquals(
+
+                "Invalid URL. Use http:// or https://",
+
+                exception.getMessage());
+
+    }
+
+    @Test
+    void exampleDotComShouldReturnAudit() {
+
+        AuditResponse response =
+
+                service.auditWebsite("https://example.com");
+
+        assertEquals(200, response.getStatus());
+
+        assertNotNull(response.getTitle());
+
+        assertTrue(response.getWordCount() > 0);
+
+    }
+
+    @Test
+    void unreachableWebsiteShouldThrowException() {
+
+        assertThrows(
+
+                AuditException.class,
+
+                () -> service.auditWebsite("https://abcdefg123456789.com"));
+
+    }
+
+}

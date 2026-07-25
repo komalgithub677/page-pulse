@@ -1,0 +1,128 @@
+package page_pulse_backend.dto;
+
+import java.util.List;
+
+public class AuditResponse {
+
+    private String url;
+
+    private int status;
+
+    private long responseTime;
+
+    private String title;
+
+    private String metaDescription;
+
+    private int h1Count;
+
+    private int imagesMissingAlt;
+
+    private int wordCount;
+
+    private int seoScore;
+
+    private List<String> recommendations;
+
+    // NEW FIELDS
+
+    private int totalImages;
+
+    private int totalLinks;
+
+    private int internalLinks;
+
+    private int externalLinks;
+
+    private int headings;
+
+    private double pageSizeKB;
+
+    private boolean httpsEnabled;
+
+    private boolean mobileFriendly;
+
+    private boolean hasFavicon;
+
+    private boolean hasCanonical;
+
+    private boolean hasRobots;
+
+    private boolean hasSitemap;
+
+    public AuditResponse() {
+    }
+
+    public AuditResponse(
+
+            String url,
+
+            int status,
+
+            long responseTime,
+
+            String title,
+
+            String metaDescription,
+
+            int h1Count,
+
+            int imagesMissingAlt,
+
+            int wordCount,
+
+            int seoScore,
+
+            List<String> recommendations,
+
+            int totalImages,
+
+            int totalLinks,
+
+            int internalLinks,
+
+            int externalLinks,
+
+            int headings,
+
+            double pageSizeKB,
+
+            boolean httpsEnabled,
+
+            boolean mobileFriendly,
+
+            boolean hasFavicon,
+
+            boolean hasCanonical,
+
+            boolean hasRobots,
+
+            boolean hasSitemap) {
+
+        this.url = url;
+        this.status = status;
+        this.responseTime = responseTime;
+        this.title = title;
+        this.metaDescription = metaDescription;
+        this.h1Count = h1Count;
+        this.imagesMissingAlt = imagesMissingAlt;
+        this.wordCount = wordCount;
+        this.seoScore = seoScore;
+        this.recommendations = recommendations;
+
+        this.totalImages = totalImages;
+        this.totalLinks = totalLinks;
+        this.internalLinks = internalLinks;
+        this.externalLinks = externalLinks;
+        this.headings = headings;
+        this.pageSizeKB = pageSizeKB;
+        this.httpsEnabled = httpsEnabled;
+        this.mobileFriendly = mobileFriendly;
+        this.hasFavicon = hasFavicon;
+        this.hasCanonical = hasCanonical;
+        this.hasRobots = hasRobots;
+        this.hasSitemap = hasSitemap;
+    }
+
+    // Generate getters and setters for all fields using your IDE.
+}

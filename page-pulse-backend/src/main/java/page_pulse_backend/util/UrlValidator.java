@@ -1,10 +1,11 @@
 package page_pulse_backend.util;
 
-
-
 import java.net.URI;
 
 public class UrlValidator {
+
+    private UrlValidator() {
+    }
 
     public static boolean isValid(String url) {
 
@@ -22,9 +23,9 @@ public class UrlValidator {
                     || scheme.equalsIgnoreCase("https");
 
         } catch (Exception e) {
+
             return false;
+
         }
-
     }
-
 }
